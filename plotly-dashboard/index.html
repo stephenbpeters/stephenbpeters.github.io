@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" path1tent="width=device-width,  
+        initial-scale=1.0" />
+    <title>Bellybutton Biodiversity</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <script src="https://d3js.org/d3.v4.min.js"></script>
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+
+<body>
+    <div class="container"></div>
+    <div class="row">
+        <div class="col-md-12 jumbotron text-center">
+            <h1>Belly Button Biodiversity Dashboard</h1>
+            <p>Use the interactive charts below to explore the dataset</p>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-2" style="margin-left: 25px;">
+            <div class="well">
+                <div id="dropme">
+                    <h5>Test Subject ID No.:</h5>
+                    <select id="selectMe" onchange="grabData()">
+                    </select>
+                </div>
+            </div>
+            <div class="panel panel-primary">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Demographic Info</h3>
+
+                </div>
+                <div id="sample-metadata" class="panel-body">
+                    <ul style="list-style: none; padding-left: 15px;"></ul>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8" style="margin-left: 25px;">
+            <div id="barDiv"></div>
+        </div>
+        <div class="col-md-2">
+            <div id="gauge"></div>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12" style="margin-left: 25px;">
+            <div id="superBubble"></div>
+        </div>
+    </div>
+    </div>
+
+    <script>
+
+        // point ourselves to our json data file
+        var url = "./samples.json";
+
+        // build and populate our drop-down with our individuals
+        function buildDrop() {
+            d3.json(url, function (data) {
+                // build drop down from data
+                d3.select('select')
+                    .selectAll('option')
+                    .data(data.names)
+                    .enter()
+                    .append('option')
+                    .text(function (d) { return d; });
+                // end of dropdown	 
+            });
+            console.log('dropdown built');
+        };
+
+        function buildDemo(selected) {
+            d3.json(url, function (data) {
+                // build meta data demo window from data
+                // let's not forget to filter to what we want to show to our one person
+                var meta = data.metadata;
+                var filteredMeta = meta.filter(patient => patient.id == selected)[0];
+                // let's build a list we can turn out as list elements
+
+                // console.log('metaList is = ', metaList);
+                // just for now, let's blank out the demo data <ul> list
+                var emptyList = [];
+                d3.select("ul")
+                    .selectAll("li")
+                    .data(emptyList)
+                    .exit()
+                    .remove();
+
+                // and now build the list again
+
+                var metaList = ['ID: ' + filteredMeta.id, 'AGE: ' + filteredMeta.age,
+                'BBTYPE: ' + filteredMeta.bbtype, 'ETHNICITY: ' + filteredMeta.ethnicity,
+                'GENDER: ' + filteredMeta.gender, 'LOCATION: ' + filteredMeta.location,
+                'WFREQ: ' + filteredMeta.wfreq
+                ];
+
+                d3.select("ul")
+                    .selectAll("li")
+                    .data(metaList)
+                    .enter()
+                    .append("li")
+                    .html(function (d) {
+                        // return `${d}`;
+                        return d;
+                    });
+
+
+            });
+            // console.log('demo area built');
+        }
+        buildDemo(940);
+
+        // our event handler to grab our individual to plot
+        function grabData() {
+            var dropdownMenu2 = d3.select("#selectMe");
+            // Assign the value of the dropdown menu option to a variable
+            var dropVal = dropdownMenu2.property("value");
+            // run and build our plot
+            // send dropVal to buildPlot and buildDemo
+            buildPlot(dropVal);
+            // seems to me like the line below should refresh our demo div, but it does not.
+            console.log('now call buildDemo');
+            buildDemo(dropVal);
+        }
+
+        buildDrop();
+
+        function buildPlot(ourSelection) {
+            d3.json(url, function (data) {
+                // let's get just our sample array
+                var samples = data.samples;
+                // now we filter for our chosen individual, and we want the first (and only) array in that
+                var filteredData = samples.filter(patient => patient.id == ourSelection)[0];
+                // console.log('and like magic, our person data is = ', filteredData);
+                var otuIDs = filteredData.otu_ids;
+                var otuLabels = filteredData.otu_labels;
+                var sampleValues = filteredData.sample_values;
+                var coolNewlist = [];
+
+                // associating our ID's with our sample values
+                for (let i = 0; i < otuIDs.length; i++) {
+                    coolNewlist.push({
+                        "otuID": otuIDs[i],
+                        "otuLabel": otuLabels[i],
+                        "sampleValue": sampleValues[i]
+                    });
+                };
+                // now to sort by sample value
+                // example: https://stackoverflow.com/questions/8837454/sort-array-of-objects-by-single-key-with-date-value
+                coolNewlist.sort(function (a, b) {
+                    var keyA = a.sampleValue,
+                        keyB = b.sampleValue;
+                    // Compare the 2 dates
+                    if (keyA < keyB) return -1;
+                    if (keyA > keyB) return 1;
+                    return 0;
+                });
+                // now we have our list sorted, printed in reverse below, slice out the 10
+                // console.log("our sorted cool new list = ",coolNewlist.reverse().slice(0,10));
+                // console.log("our sorted cool new list = ", coolNewlist);
+                // looks like we may need to put this into a new list for it to work
+                // var sliceList = coolNewlist.reverse().slice(0,10);
+                var sortList = coolNewlist.reverse();
+                // console.log("sortList = ", sortList);
+                var sliceList = sortList.slice(0, 10);
+                // console.log("sliceList = ", sliceList);
+                // can we get directly to the proper sort & slice?
+                // nope, the following two lines do not sort 'n' slice properly
+                // var sliced2list =  coolNewlist.reverse().slice(0,10);
+                // console.log("sliced2list = ", sliced2list);
+
+                // ok, now we get our properly sorted data into our things to plot
+                var ourX = [];
+                var ourY = [];
+                var ourLabels = [];
+                sliceList.forEach((value) => {
+                    ourX.push(value.sampleValue);
+                    // ourY.push(value.otuID);
+                    ourY.push("OTU " + value.otuID + "  ");
+                    ourLabels.push(value.otuLabel.toString());
+                });
+
+                var plotData = [{
+                    x: ourX,
+                    text: ourLabels,
+                    y: ourY,
+                    type: 'bar',
+                    orientation: 'h'
+                }];
+
+                var barLayout = {
+                    title: 'Top 10 Bacteria Cultures Found',
+                    // height: 600,
+                    width: 1000
+                };
+
+                Plotly.newPlot('barDiv', plotData, barLayout);
+
+                // time for a new bubble plot that takes the selected individual
+                // let's make up some random colors for the bubbles
+                var colors = [];
+                for (var i = 0; i < 80; i++) {
+                    colors[i] = Math.floor(Math.random() * 254)
+                }
+                // console.log("and our colors are: ", colors);
+
+                // draw the bubble chart
+                var trace1 = {
+                    // x: ourX,
+                    // y: ourY,
+                    // my variable names are confusing here, as its otu_ids for X
+                    // and sample_values for y, which is reverse of how we create the bar chart
+                    // the below x and y just plot the top 10
+                    // x: ourY,
+                    // y: ourX,
+                    // -----------------
+                    // the next x and y plot all the samples for this individual
+                    x: otuIDs,
+                    y: sampleValues,
+                    text: ourLabels,
+                    mode: 'markers',
+                    marker: {
+                        size: ourX,
+                        // below line generates random colors
+                        // color: colors
+                        color: otuIDs
+                    }
+                };
+
+                var dataB = [trace1];
+
+                var layoutB = {
+                    title: 'Bacteria Cultures Per Sample',
+                    showlegend: false,
+                    height: 600,
+                    width: 1200,
+                    xaxis: { 
+                        title: {
+                            text: 'OTU ID' }
+                        }
+                };
+
+                Plotly.newPlot('superBubble', dataB, layoutB);
+
+                // let's not forget to draw our demo data area 
+                buildDemo(ourSelection);
+
+
+            });
+            // console.log('data loaded');
+        };
+        buildPlot(940);
+    </script>
+</body>
+
+</html>

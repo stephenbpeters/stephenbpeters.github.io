@@ -1,0 +1,16 @@
+.footer { background-color: rgb(233, 223, 223);
+    margin: 1rem;
+    margin-top: 2rem;
+    padding: 1rem;
+    margin-left: 0px;
+    padding-left: 0px;
+    padding-right: 0px;
+    margin-right: 0px;
+}
+.spacer { padding-top: 1rem;}
+.spacer2 { padding-top: 2rem;}
+.highlight { border: 2px solid #2fa4e7; }
+.box-center {    
+    margin-top:auto;
+    margin-bottom:auto;
+    text-align:center;}
